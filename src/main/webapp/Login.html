@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农益搜 Agri-Search | 智慧农业门户</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- 1. 全局定义 --- */
+        :root {
+            --primary: #27ae60;
+            --primary-light: #2ecc71;
+            --accent: #f1c40f;
+            --dark: #1b5e20;
+            --glass: rgba(255, 255, 255, 0.12);
+            --glass-hover: rgba(255, 255, 255, 0.18);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0d1b12; /* 底色 */
+            overflow: hidden;
+        }
+
+        /* --- 2. 动态背景层 --- */
+        #bg-video {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop');
+            filter: brightness(0.4) saturate(1.2);
+            z-index: -1;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- 3. 登录框主架构 --- */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 1000px;
+            height: 620px;
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 40px;
+            display: flex;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+            overflow: hidden;
+            animation: containerShow 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 左侧：品牌内容 */
+        .brand-panel {
+            flex: 1;
+            padding: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.3), rgba(0, 0, 0, 0.2));
+            color: white;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .brand-panel .badge {
+            display: inline-block;
+            padding: 6px 15px;
+            background: var(--primary);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .brand-panel h1 {
+            font-size: 4rem;
+            line-height: 0.9;
+            margin-bottom: 25px;
+            font-weight: 900;
+        }
+
+        .brand-panel h1 span { color: var(--accent); }
+
+        .brand-panel p {
+            font-size: 1.1rem;
+            opacity: 0.7;
+            line-height: 1.8;
+            max-width: 300px;
+        }
+
+        /* 右侧：表单区 */
+        .form-panel {
+            flex: 1.2;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .form-header { margin-bottom: 40px; }
+        .form-header h2 { font-size: 2.2rem; color: #fff; margin-bottom: 10px; }
+        .form-header p { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+
+        /* --- 4. 酷炫输入框 --- */
+        .input-box {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .input-box i {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-light);
+            transition: 0.3s;
+        }
+
+        .input-box input {
+            width: 100%;
+            padding: 18px 20px 18px 55px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.4s;
+        }
+
+        .input-box input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-light);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
+        }
+
+        .input-box label {
+            position: absolute;
+            left: 55px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.4);
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .input-box input:focus ~ label,
+        .input-box input:valid ~ label {
+            top: -10px;
+            left: 15px;
+            font-size: 0.8rem;
+            color: var(--primary-light);
+            background: #1b3a2a;
+            padding: 0 10px;
+            border-radius: 5px;
+        }
+
+        /* --- 5. 交互式按钮 --- */
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border: none;
+            border-radius: 18px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.4s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 15px 30px rgba(39, 174, 96, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(39, 174, 96, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .form-footer {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+        }
+
+        .form-footer a { color: var(--primary-light); text-decoration: none; font-weight: 600; }
+
+        /* --- 6. 动画序列 --- */
+        @keyframes containerShow {
+            from { opacity: 0; transform: translateY(60px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .success-checkmark { color: var(--primary-light); font-size: 4rem; text-align: center; display: none; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="particleCanvas"></canvas>
+    <div id="bg-video"></div>
+
+    <div class="container">
+        <div class="brand-panel">
+            <span class="badge">Next-Gen Agri Tech</span>
+            <h1>Agri<br><span>Search</span></h1>
+            <p>基于农业知识图谱的决策系统，为现代耕作提供毫秒级的病虫害检索与 AI 诊断方案。</p>
+        </div>
+
+        <div class="form-panel" id="formArea">
+            <div class="form-header">
+                <h2>登录系统</h2>
+                <p>请输入您的管理员凭据以访问控制台</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="input-box">
+                    <i class="fas fa-user-shield"></i>
+                    <input type="text" id="username" required placeholder=" ">
+                    <label>管理账号</label>
+                </div>
+
+                <div class="input-box">
+                    <i class="fas fa-fingerprint"></i>
+                    <input type="password" id="password" required placeholder=" ">
+                    <label>验证密钥</label>
+                </div>
+
+                <button type="submit" class="login-btn" id="submitBtn">
+                    <span id="btnText">开启智能检索</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+                <div class="form-footer">
+                    <span>系统状态：<b style="color:var(--primary-light)">在线</b></span>
+                    <a href="#">联系实验室技术支持</a>
+                </div>
+            </form>
+
+            <div class="success-checkmark" id="successIcon">
+                <i class="fas fa-check-circle"></i>
+                <p style="font-size: 1rem; margin-top: 10px;">认证成功</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 粒子动画脚本 (保持不变) ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.color = `rgba(46, 204, 113, ${Math.random() * 0.5})`;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0; if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0; if (this.y < 0) this.y = canvas.height;
+            }
+            draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+        }
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+        function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
+        animate();
+
+        // --- 2. 核心登录逻辑：Base64 编码与后端交互 ---
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const form = document.getElementById('loginForm');
+            const successIcon = document.getElementById('successIcon');
+            const header = document.querySelector('.form-header');
+
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            // 【创新加分项】：前端对密码进行 Base64 编码传输
+            const encodedPass = btoa(pass);
+
+            // UI 反馈：加载状态
+            btn.style.pointerEvents = 'none';
+            btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在安全验证...';
+
+            try {
+                // 使用 URLSearchParams 发送表单数据
+                const params = new URLSearchParams();
+                params.append('username', user);
+                params.append('password', encodedPass);
+
+                // 发起 fetch 请求到后端 Servlet
+                const response = await fetch('./login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+
+                const result = await response.json();
+
+                if(result.success) {
+                    // 成功：表单消失，显示认证成功
+                    form.style.display = 'none';
+                    header.style.display = 'none';
+                    successIcon.style.display = 'block';
+                    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+                } else {
+                    throw new Error(result.message || "凭据错误");
+                }
+            } catch (error) {
+                // 失败反馈
+                btnText.innerText = error.message;
+                btn.style.background = "#e74c3c";
+                setTimeout(() => {
+                    btn.style.pointerEvents = 'all';
+                    btnText.innerText = "开启智能检索";
+                    btn.style.background = "linear-gradient(90deg, #2ecc71, #27ae60)";
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
